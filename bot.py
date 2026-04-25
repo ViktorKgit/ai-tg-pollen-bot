@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 from datetime import datetime
 import sys
@@ -16,12 +17,34 @@ if os.path.exists(env_path):
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Координаты Витебска
+# Координаты Витебска (дефолт)
 LAT = 55.19
 LON = 30.20
 
-def get_pollen_data():
-    url = f"https://air-quality-api.open-meteo.com/v1/air-quality?latitude={LAT}&longitude={LON}&hourly=birch_pollen,alder_pollen&timezone=Europe/Minsk"
+# Хранилище локаций юзеров {chat_id: {"lat": float, "lon": float, "name": str}}
+user_locations = {}
+LOCATIONS_FILE = os.path.join(os.path.dirname(__file__), "locations.json")
+
+def load_locations():
+    """Загружает локации из файла"""
+    global user_locations
+    if os.path.exists(LOCATIONS_FILE):
+        try:
+            with open(LOCATIONS_FILE, "r", encoding="utf-8") as f:
+                user_locations = json.load(f)
+        except:
+            user_locations = {}
+
+def save_locations():
+    """Сохраняет локации в файл"""
+    with open(LOCATIONS_FILE, "w", encoding="utf-8") as f:
+        json.dump(user_locations, f, ensure_ascii=False, indent=2)
+
+# Загружаем при старте
+load_locations()
+
+def get_pollen_data(lat=LAT, lon=LON):
+    url = f"https://air-quality-api.open-meteo.com/v1/air-quality?latitude={lat}&longitude={lon}&hourly=birch_pollen,alder_pollen&timezone=Europe/Minsk"
     response = requests.get(url).json()
 
     # Берём текущее время в нужной timezone
@@ -45,19 +68,32 @@ def get_status(level, name):
     else:
         return f"✅ {name}: {level} — Низкий уровень"
 
-def get_pollen_message():
-    pollen = get_pollen_data()
+def get_pollen_message(location_name="Витебск", lat=LAT, lon=LON):
+    pollen = get_pollen_data(lat, lon)
 
-    message = f"🌲 Пыльца в Витебске:\n\n"
+    message = f"🌲 Пыльца в {location_name}:\n\n"
     message += get_status(pollen["birch"], "Берёза") + "\n"
     message += get_status(pollen["alder"], "Ольха")
 
     return message
 
-def send_message(chat_id, text):
+def send_message(chat_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     data = {"chat_id": chat_id, "text": text}
+    if reply_markup:
+        data["reply_markup"] = reply_markup
     requests.post(url, json=data)
+
+def get_location_keyboard():
+    """Возвращает клавиатуру с кнопкой запроса локации"""
+    return json.dumps({
+        "keyboard": [[{"text": "📍 Отправить локацию", "request_location": True}]],
+        "resize_keyboard": True
+    }, ensure_ascii=False)
+
+def remove_keyboard_markup():
+    """Убирает клавиатуру"""
+    return json.dumps({"remove_keyboard": True}, ensure_ascii=False)
 
 def is_pollen_season():
     """Проверяет, идёт ли сезон цветения (15 февраля - 15 июня)"""
@@ -81,11 +117,33 @@ def check_and_reply_commands():
             chat_id = message["chat"]["id"]
             text = message.get("text", "")
 
+            # Обработка локации
+            if "location" in message:
+                loc = message["location"]
+                user_locations[chat_id] = {"lat": loc["latitude"], "lon": loc["longitude"], "name": "вашем месте"}
+                save_locations()
+                send_message(chat_id, "📍 Локация сохранена!", reply_markup=remove_keyboard_markup())
+                updates_to_delete.append(result["update_id"])
+                continue
+
             if text == "/check":
-                send_message(chat_id, get_pollen_message())
+                # Используем сохранённую локацию или дефолт
+                if chat_id in user_locations:
+                    loc = user_locations[chat_id]
+                    msg = get_pollen_message(loc["name"], loc["lat"], loc["lon"])
+                else:
+                    msg = get_pollen_message()
+                send_message(chat_id, msg)
 
             if text in ["/start", "/check"]:
-                send_message(chat_id, "🌲 Бот пыльцы!\nКоманды:\n/check - узнать уровень пыльцы")
+                if text == "/start":
+                    send_message(
+                        chat_id,
+                        "🌲 Привет! Я помогу следить за уровнем пыльцы.\n\n"
+                        "Команды:\n/check - узнать уровень пыльцы\n\n"
+                        "Нажми кнопку ниже, чтобы получать данные для твоего местоположения:",
+                        reply_markup=get_location_keyboard()
+                    )
 
             updates_to_delete.append(result["update_id"])
 
@@ -115,11 +173,31 @@ def main():
                         chat_id = message["chat"]["id"]
                         text = message.get("text", "")
 
+                        # Обработка локации
+                        if "location" in message:
+                            loc = message["location"]
+                            user_locations[chat_id] = {"lat": loc["latitude"], "lon": loc["longitude"], "name": "вашем месте"}
+                            save_locations()
+                            send_message(chat_id, "📍 Локация сохранена! Теперь /check показывает данные для вашей местности.")
+                            continue
+
                         if text == "/check":
-                            send_message(chat_id, get_pollen_message())
+                            # Используем сохранённую локацию или дефолт
+                            if chat_id in user_locations:
+                                loc = user_locations[chat_id]
+                                msg = get_pollen_message(loc["name"], loc["lat"], loc["lon"])
+                            else:
+                                msg = get_pollen_message()
+                            send_message(chat_id, msg)
 
                         if text in ["/start"]:
-                            send_message(chat_id, "🌲 Бот пыльцы!\nКоманды:\n/check - узнать уровень пыльцы")
+                            send_message(
+                                chat_id,
+                                "🌲 Привет! Я помогу следить за уровнем пыльцы.\n\n"
+                                "Команды:\n/check - узнать уровень пыльцы\n\n"
+                                "Нажми кнопку ниже, чтобы получать данные для твоего местоположения:",
+                                reply_markup=get_location_keyboard()
+                            )
             except Exception as e:
                 print(f"Ошибка: {e}")
                 time.sleep(5)
