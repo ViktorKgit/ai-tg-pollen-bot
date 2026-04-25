@@ -59,6 +59,15 @@ def send_message(chat_id, text):
     data = {"chat_id": chat_id, "text": text}
     requests.post(url, json=data)
 
+def is_pollen_season():
+    """Проверяет, идёт ли сезон цветения (15 февраля - 15 июня)"""
+    from datetime import datetime
+    minsk_tz = timezone(timedelta(hours=3))
+    now = datetime.now(minsk_tz)
+    # Сезон: 15 февраля (день 46) - 15 июня (день 166)
+    day_of_year = now.timetuple().tm_yday
+    return 46 <= day_of_year <= 166
+
 def check_and_reply_commands():
     """Проверяет и отвечает на команды /check"""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?timeout=10"
@@ -116,7 +125,12 @@ def main():
                 time.sleep(5)
 
     else:
-        # Режим по расписанию - проверяет команды и отправляет уведомление
+        # Режим по расписанию - проверяет сезон
+        if not is_pollen_season():
+            print("Вне сезона цветения, пропуск")
+            return
+
+        # Проверяет команды и отправляет уведомление
         check_and_reply_commands()
 
         if TELEGRAM_CHAT_ID:
