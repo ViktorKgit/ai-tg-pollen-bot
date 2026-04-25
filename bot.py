@@ -21,10 +21,14 @@ LAT = 55.19
 LON = 30.20
 
 def get_pollen_data():
-    url = f"https://air-quality-api.open-meteo.com/v1/air-quality?latitude={LAT}&longitude={LON}&hourly=birch_pollen,alder_pollen&timezone=auto"
+    url = f"https://air-quality-api.open-meteo.com/v1/air-quality?latitude={LAT}&longitude={LON}&hourly=birch_pollen,alder_pollen&timezone=Europe/Minsk"
     response = requests.get(url).json()
 
-    current_hour = datetime.now().hour
+    # Получаем текущий час из API (уже в правильной timezone)
+    current_time = response['hourly']['time'][-1]
+    current_hour_str = current_time.split('T')[1][:2]  # "HH" из "2025-04-25T10:00"
+    current_hour = int(current_hour_str)
+
     hourly = response['hourly']
 
     birch = hourly['birch_pollen'][current_hour]
