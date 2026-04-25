@@ -2,7 +2,7 @@ name: Pollen Bot
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # Каждый день в 8:00 UTC
+    - cron: '0 7 * * *'  # Каждый день в 10:00 по Минску (UTC+3)
   workflow_dispatch:      # Ручной запуск
 
 jobs:
