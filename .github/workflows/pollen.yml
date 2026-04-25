@@ -1,0 +1,28 @@
+name: Pollen Bot
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # Каждый день в 8:00 UTC
+  workflow_dispatch:      # Ручной запуск
+
+jobs:
+  pollen:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.POLLEN_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.POLLEN_CHAT_ID }}
+        run: python bot.py
