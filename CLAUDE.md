@@ -42,12 +42,16 @@ pip install requests
 - `> 10` — Moderate (yellow emoji)
 - `≤ 10` — Low (green emoji)
 
+**Season check:** In schedule mode, bot checks if current date is within pollen season (Feb 15 — Jun 15, day 46–166). Outside season, execution is skipped. Poll mode is not affected by season check.
+
 ## GitHub Actions
 
 **Secrets required:**
 - `POLLEN_BOT_TOKEN` — Telegram bot token from @BotFather
 - `POLLEN_CHAT_ID` — Recipient chat ID
 
-**Schedule:** Currently `0 7 * * *` = 10:00 AM Belarus time (UTC+3).
+**Schedule:** 3x daily at 10:00, 15:00, 20:00 Belarus time (UTC+3).
+
+**Season:** Bot only runs Feb 15 — Jun 15 (pollen blooming season). Outside this period, schedule runs are skipped.
 
 Manual test run available via Actions → Pollen Bot → Run workflow.
