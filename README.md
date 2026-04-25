@@ -44,10 +44,10 @@ python bot.py poll
 ## GitHub Actions
 
 Добавьте в Secrets репозитория:
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
+- `POLLEN_BOT_TOKEN`
+- `POLLEN_CHAT_ID`
 
-Бот будет отправлять уведомления каждый день в 8:00 UTC.
+Бот будет отправлять уведомления каждый день в 10:00 по Минску (UTC+3).
 
 ## Данные
 
