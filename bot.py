@@ -62,11 +62,11 @@ def get_pollen_data(lat=LAT, lon=LON):
 
 def get_status(level, name):
     if level > 100:
-        return f"🔴 {name}: {level} — ОПАСНО!"
+        return f"🔴 {name}: {level} гр/м³ — ОПАСНО!"
     elif level > 10:
-        return f"⚠️ {name}: {level} — Средний уровень"
+        return f"⚠️ {name}: {level} гр/м³ — Средний уровень"
     else:
-        return f"✅ {name}: {level} — Низкий уровень"
+        return f"✅ {name}: {level} гр/м³ — Низкий уровень"
 
 def get_pollen_message(location_name="Витебск", lat=LAT, lon=LON):
     pollen = get_pollen_data(lat, lon)
@@ -97,7 +97,7 @@ def remove_keyboard_markup():
 
 def is_pollen_season():
     """Проверяет, идёт ли сезон цветения (15 февраля - 15 июня)"""
-    from datetime import datetime
+    from datetime import datetime, timezone, timedelta
     minsk_tz = timezone(timedelta(hours=3))
     now = datetime.now(minsk_tz)
     # Сезон: 15 февраля (день 46) - 15 июня (день 166)
