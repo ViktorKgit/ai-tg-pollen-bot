@@ -68,7 +68,7 @@ def get_status(level, name):
     else:
         return f"✅ {name}: {level} гр/м³ — Низкий уровень"
 
-def get_pollen_message(location_name="Витебск", lat=LAT, lon=LON):
+def get_pollen_message(location_name="Витебске", lat=LAT, lon=LON):
     pollen = get_pollen_data(lat, lon)
 
     message = f"🌲 Пыльца в {location_name}:\n\n"
