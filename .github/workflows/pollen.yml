@@ -1,11 +1,12 @@
 name: Pollen Bot
 
 on:
-  schedule:
-    - cron: '0 5 * * *'
-    - cron: '0 10 * * *'
-    - cron: '0 15 * * *'
   workflow_dispatch:      # Ручной запуск
+  # Сезон отключен (вне сезона цветения). Вернуть cron весной:
+  # schedule:
+  #   - cron: '0 5 * * *'
+  #   - cron: '0 10 * * *'
+  #   - cron: '0 15 * * *'
 
 jobs:
   pollen:
